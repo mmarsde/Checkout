@@ -1,4 +1,5 @@
 ﻿using Checkout.Models;
+using System.ComponentModel;
 
 namespace Checkout
 {
@@ -22,6 +23,11 @@ namespace Checkout
 
         public void Scan(string item)
         {
+            if (!_productList.Any(x => x.ProductName == item))
+            {
+                throw new ArgumentException($"Product {item} is not a valid product.", nameof(item));
+            }
+
             _scannedItems.Add(item);
         }
 
@@ -31,10 +37,10 @@ namespace Checkout
 
             foreach(var item in _scannedItems)
             {
-                if (item == "A")
-                    price += 50;
-                else if (item == "B")
-                    price += 30;
+                var sku = _productList
+                    .FirstOrDefault(x => x.ProductName == item);
+
+                price += sku.UnitPrice;
             }
 
             return price;

@@ -14,7 +14,7 @@ namespace Checkout.Tests
         };
 
         [Fact]
-        public void GetTotalPrice_NoItems_Returns_Zero()
+        public void GetTotalPrice_NoItems_ReturnsZero()
         {
             // Arrange
             var sut = new Checkout(_productList);
@@ -27,9 +27,10 @@ namespace Checkout.Tests
         }
 
         [Fact]
-        public void GetTotalPrice_ProductA_Returns_50()
+        public void GetTotalPrice_ProductA_Returns50()
         {
             // Arrange
+            var expected = 50;
             var sut = new Checkout(_productList);
             sut.Scan("A");
 
@@ -37,13 +38,14 @@ namespace Checkout.Tests
             var price = sut.GetTotalPrice();
 
             // Assert
-            price.Should().Be(50);
+            price.Should().Be(expected);
         }
 
         [Fact]
-        public void GetTotalPrice_ProductsA_And_B_Returns_70()
+        public void GetTotalPrice_ProductsA_And_B_Returns70()
         {
             // Arrange
+            var expected = 80;
             var sut = new Checkout(_productList);
             sut.Scan("A");
             sut.Scan("B");
@@ -52,7 +54,37 @@ namespace Checkout.Tests
             var price = sut.GetTotalPrice();
 
             // Assert
-            price.Should().Be(80);
+            price.Should().Be(expected);
+        }
+
+        [Fact]
+        public void GetTotalPrice_AllProductsScanned_ReturnsExpected()
+        {
+            // Arrange
+            var expected = 115;
+            var sut = new Checkout(_productList);
+            sut.Scan("A");
+            sut.Scan("B");
+            sut.Scan("C");
+            sut.Scan("D");
+
+            // Act
+            var price = sut.GetTotalPrice();
+
+            // Assert
+            price.Should().Be(expected);
+        }
+
+        [Fact]
+        public void Scan_InvalidProduct_ThrowsArgumentException()
+        {
+            // Arrange
+            var sut = new Checkout(_productList);
+
+            // Act
+
+            // Assert
+            Assert.Throws<ArgumentException>(() => sut.Scan("Z"));
         }
     }
 }
