@@ -22,13 +22,28 @@ namespace Checkout.Tests
         {
             // Arrange
             var sut = new Checkout();
-            sut.Scan("A");
+            sut.Scan('A');
 
             // Act
             var price = sut.GetTotalPrice();
 
             // Assert
             price.Should().Be(50);
+        }
+
+        [Fact]
+        public void GetTotalPrice_MultipleProducts_Returns_100()
+        {
+            // Arrange
+            var sut = new Checkout();
+            sut.Scan('A');
+            sut.Scan('B');
+
+            // Act
+            var price = sut.GetTotalPrice();
+
+            // Assert
+            price.Should().Be(70);
         }
     }
 }

@@ -2,7 +2,7 @@
 {
     public class Checkout : ICheckout
     {
-        private readonly List<string> _scannedItems = new List<string>();
+        private readonly List<char> _scannedItems = new List<char>();
 
         public int GetTotalPrice()
         {
@@ -12,7 +12,7 @@
             return 50;
         }
 
-        public void Scan(string item)
+        public void Scan(char item)
         {
             _scannedItems.Add(item);
         }
