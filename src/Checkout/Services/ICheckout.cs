@@ -1,4 +1,4 @@
-﻿namespace Checkout
+﻿namespace Checkout.Services
 {
     public interface ICheckout
     {

@@ -1,4 +1,5 @@
 using Checkout.Models;
+using Checkout.Services;
 using FluentAssertions;
 
 namespace Checkout.Tests
@@ -15,30 +16,22 @@ namespace Checkout.Tests
 
         private readonly List<Discount> _discounts = new List<Discount>
         {
+            new() { Product = "A", DiscountUnit = 3, DiscountPrice = 130 },
             new() { Product = "B", DiscountUnit = 2, DiscountPrice = 45 }
         };
 
-        [Fact]
-        public void GetTotalPrice_NoItems_ReturnsZero()
+        [Theory]
+        [InlineData(0, "")]
+        [InlineData(50, "A")]
+        [InlineData(80, "AB")]
+        [InlineData(115, "CDBA")]
+        [InlineData(100, "AA")]
+        public void GetTotalPrice_NoDiscountableProducts_ReturnsExpected(int expectedPrice, string item)
         {
             // Arrange
-            var sut = new Checkout(_productList);
-
-            // Act
-            var price = sut.GetTotalPrice();
-
-            // Assert
-            price.Should().Be(0);
-        }
-
-        //TODO: Refactor repeating test cases into "Theories".
-        [Fact]
-        public void GetTotalPrice_ProductA_Returns50()
-        {
-            // Arrange
-            var expected = 50;
-            var sut = new Checkout(_productList);
-            sut.Scan("A");
+            var expected = expectedPrice;
+            var sut = new CheckoutService(_productList);
+            sut.Scan(item);
 
             // Act
             var price = sut.GetTotalPrice();
@@ -47,86 +40,21 @@ namespace Checkout.Tests
             price.Should().Be(expected);
         }
 
-        [Fact]
-        public void GetTotalPrice_ProductsA_And_B_Returns70()
+        [Theory]
+        [InlineData(130, "AAA")]
+        [InlineData(180, "AAAA")]
+        [InlineData(230, "AAAAA")]
+        [InlineData(260, "AAAAAA")]
+        [InlineData(160, "AAAB")]
+        [InlineData(175, "AAABB")]
+        [InlineData(190, "AAABBD")]
+        [InlineData(190, "DABABA")]
+        public void GetTotalPrice_ApplyDiscountRate_ReturnsExpected(int expectedPrice, string item)
         {
             // Arrange
-            var expected = 80;
-            var sut = new Checkout(_productList);
-            sut.Scan("A");
-            sut.Scan("B");
-
-            // Act
-            var price = sut.GetTotalPrice();
-
-            // Assert
-            price.Should().Be(expected);
-        }
-
-        [Fact]
-        public void GetTotalPrice_AllProductsScanned_ReturnsExpected()
-        {
-            // Arrange
-            var expected = 115;
-            var sut = new Checkout(_productList);
-            sut.Scan("A");
-            sut.Scan("B");
-            sut.Scan("C");
-            sut.Scan("D");
-
-            // Act
-            var price = sut.GetTotalPrice();
-
-            // Assert
-            price.Should().Be(expected);
-        }
-
-        [Fact]
-        public void GetTotalPrice_2ProductsDiscounted_ReturnsExpected()
-        {
-            // Arrange
-            var expected = 125;
-            var sut = new Checkout(_productList, _discounts);
-            sut.Scan("B");
-            sut.Scan("A");
-            sut.Scan("B");
-            sut.Scan("B");
-
-            // Act
-            var price = sut.GetTotalPrice();
-
-            // Assert
-            price.Should().Be(expected);
-        }
-
-        [Fact]
-        public void GetTotalPrice_AllProductsDiscounted_ReturnsExpected()
-        {
-            // Arrange
-            var expected = 90;
-            var sut = new Checkout(_productList, _discounts);
-            sut.Scan("B");
-            sut.Scan("B");
-            sut.Scan("B");
-            sut.Scan("B");
-
-            // Act
-            var price = sut.GetTotalPrice();
-
-            // Assert
-            price.Should().Be(expected);
-        }
-
-        [Fact]
-        public void GetTotalPrice_NoProductsDiscounted_ReturnsExpected()
-        {
-            // Arrange
-            var expected = 200;
-            var sut = new Checkout(_productList, _discounts);
-            sut.Scan("A");
-            sut.Scan("A");
-            sut.Scan("A");
-            sut.Scan("A");
+            var expected = expectedPrice;
+            var sut = new CheckoutService(_productList, _discounts);
+            sut.Scan(item);
 
             // Act
             var price = sut.GetTotalPrice();
@@ -139,12 +67,12 @@ namespace Checkout.Tests
         public void Scan_InvalidProduct_ThrowsArgumentException()
         {
             // Arrange
-            var sut = new Checkout(_productList);
+            var sut = new CheckoutService(_productList);
 
             // Act
 
             // Assert
-            Assert.Throws<ArgumentException>(() => sut.Scan("Z"));
+            Assert.Throws<ArgumentException>(() => sut.Scan("AZ"));
         }
     }
 }

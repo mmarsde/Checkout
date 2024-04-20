@@ -1,25 +1,25 @@
 ﻿using Checkout.Models;
 
-namespace Checkout
+namespace Checkout.Services
 {
-    public class Checkout : ICheckout
+    public class CheckoutService : ICheckout
     {
         private readonly List<string> _scannedItems = new List<string>();
         private readonly List<SKU> _productList;
-        private readonly List<Discount> _discounts = Enumerable.Empty<Discount>().ToList();
-        
-        public Checkout(IEnumerable<SKU> productList, IEnumerable<Discount> discounts)
+        private readonly List<Discount> _discounts;
+
+        public CheckoutService(IEnumerable<SKU> productList)
+            : this(productList, Enumerable.Empty<Discount>())
+        {
+        }
+
+        public CheckoutService(IEnumerable<SKU> productList, IEnumerable<Discount> discounts)
         {
             _productList = productList.ToList();
             _discounts = discounts.ToList();
         }
 
-        public Checkout(IEnumerable<SKU> productList)
-        {
-            _productList = productList.ToList();
-        }
-
-    public int GetTotalPrice()
+        public int GetTotalPrice()
         {
             if (_scannedItems.Count == 0)
                 return 0;
@@ -29,12 +29,18 @@ namespace Checkout
 
         public void Scan(string item)
         {
-            if (!_productList.Any(x => x.ProductName == item))
+            void ScanInternal(string item)
             {
-                throw new ArgumentException($"Product {item} is not a valid product.", nameof(item));
-            };
+                if (!_productList.Any(x => x.ProductName == item))
+                {
+                    throw new ArgumentException($"Product {item} is not a valid product.", nameof(item));
+                };
 
-            _scannedItems.Add(item);
+                _scannedItems.Add(item);
+            }
+
+            var items = item.ToCharArray().Select(x => x.ToString()).ToList();
+            items.ForEach(ScanInternal);
         }
 
         // TODO: Refactor - Move to a calculator class and inject an instance of ICalculator into the Checkout constructor
@@ -42,7 +48,9 @@ namespace Checkout
         {
             var price = 0;
 
-            var productQuantities = _productList.Select(x => (SKU: x, Quantity: _scannedItems.Count(y => x.ProductName == y))).Where(x => x.Quantity > 0);
+            var productQuantities = _productList
+                .Select(x => (SKU: x, Quantity: _scannedItems.Count(y => x.ProductName == y)))
+                .Where(x => x.Quantity > 0);
 
             foreach (var item in productQuantities)
             {
@@ -55,13 +63,13 @@ namespace Checkout
                 {
                     var baseRateQuantity = item.Quantity % discount.DiscountUnit;
                     var discountQuantity = item.Quantity - baseRateQuantity;
-                    var discountedPrice = (discountQuantity / discount.DiscountUnit) * discount.DiscountPrice;
+                    var discountedPrice = discountQuantity / discount.DiscountUnit * discount.DiscountPrice;
 
                     productQuantity -= discountQuantity;
                     productPrice += discountedPrice;
                 }
 
-                productPrice += (item.SKU.UnitPrice * productQuantity);
+                productPrice += item.SKU.UnitPrice * productQuantity;
 
                 price += productPrice;
             }
