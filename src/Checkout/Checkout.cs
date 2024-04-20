@@ -1,5 +1,4 @@
 ﻿using Checkout.Models;
-using System.ComponentModel;
 
 namespace Checkout
 {
@@ -7,7 +6,7 @@ namespace Checkout
     {
         private readonly List<string> _scannedItems = new List<string>();
         private readonly List<SKU> _productList;
-        private readonly List<Discount> _discounts;
+        private readonly List<Discount> _discounts = Enumerable.Empty<Discount>().ToList();
         
         public Checkout(IEnumerable<SKU> productList, IEnumerable<Discount> discounts)
         {
@@ -20,7 +19,7 @@ namespace Checkout
             _productList = productList.ToList();
         }
 
-        public int GetTotalPrice()
+    public int GetTotalPrice()
         {
             if (_scannedItems.Count == 0)
                 return 0;
@@ -33,20 +32,38 @@ namespace Checkout
             if (!_productList.Any(x => x.ProductName == item))
             {
                 throw new ArgumentException($"Product {item} is not a valid product.", nameof(item));
-            }
+            };
 
             _scannedItems.Add(item);
         }
 
+        // TODO: Refactor - Move to a calculator class and inject an instance of ICalculator into the Checkout constructor
         private int CalculatePrice()
         {
             var price = 0;
 
-            var productQuantities = _productList.Select(x => (SKU: x, Quantity: _scannedItems.Count(y => x.ProductName == y)));
+            var productQuantities = _productList.Select(x => (SKU: x, Quantity: _scannedItems.Count(y => x.ProductName == y))).Where(x => x.Quantity > 0);
 
-            foreach(var item in productQuantities)
+            foreach (var item in productQuantities)
             {
-                price += (item.SKU.UnitPrice * item.Quantity); 
+                var productPrice = 0;
+
+                var productQuantity = item.Quantity;
+
+                var discount = _discounts.FirstOrDefault(x => x.Product == item.SKU.ProductName);
+                if (discount is not null)
+                {
+                    var baseRateQuantity = item.Quantity % discount.DiscountUnit;
+                    var discountQuantity = item.Quantity - baseRateQuantity;
+                    var discountedPrice = (discountQuantity / discount.DiscountUnit) * discount.DiscountPrice;
+
+                    productQuantity -= discountQuantity;
+                    productPrice += discountedPrice;
+                }
+
+                productPrice += (item.SKU.UnitPrice * productQuantity);
+
+                price += productPrice;
             }
 
             return price;

@@ -15,7 +15,7 @@ namespace Checkout.Tests
 
         private readonly List<Discount> _discounts = new List<Discount>
         {
-            new() { Product = "B", PurchaseQuantity = 2, DiscountPrice = 45 }
+            new() { Product = "B", DiscountUnit = 2, DiscountPrice = 45 }
         };
 
         [Fact]
@@ -31,6 +31,7 @@ namespace Checkout.Tests
             price.Should().Be(0);
         }
 
+        //TODO: Refactor repeating test cases into "Theories".
         [Fact]
         public void GetTotalPrice_ProductA_Returns50()
         {
@@ -81,14 +82,51 @@ namespace Checkout.Tests
         }
 
         [Fact]
-        public void GetTotalPrice_ProductsBA_AndB_ReturnsDiscountedPrice()
+        public void GetTotalPrice_2ProductsDiscounted_ReturnsExpected()
         {
             // Arrange
-            var expected = 95;
+            var expected = 125;
             var sut = new Checkout(_productList, _discounts);
             sut.Scan("B");
             sut.Scan("A");
             sut.Scan("B");
+            sut.Scan("B");
+
+            // Act
+            var price = sut.GetTotalPrice();
+
+            // Assert
+            price.Should().Be(expected);
+        }
+
+        [Fact]
+        public void GetTotalPrice_AllProductsDiscounted_ReturnsExpected()
+        {
+            // Arrange
+            var expected = 90;
+            var sut = new Checkout(_productList, _discounts);
+            sut.Scan("B");
+            sut.Scan("B");
+            sut.Scan("B");
+            sut.Scan("B");
+
+            // Act
+            var price = sut.GetTotalPrice();
+
+            // Assert
+            price.Should().Be(expected);
+        }
+
+        [Fact]
+        public void GetTotalPrice_NoProductsDiscounted_ReturnsExpected()
+        {
+            // Arrange
+            var expected = 200;
+            var sut = new Checkout(_productList, _discounts);
+            sut.Scan("A");
+            sut.Scan("A");
+            sut.Scan("A");
+            sut.Scan("A");
 
             // Act
             var price = sut.GetTotalPrice();
