@@ -13,6 +13,11 @@ namespace Checkout.Tests
             new() { ProductName = "D", UnitPrice = 15 },
         };
 
+        private readonly List<Discount> _discounts = new List<Discount>
+        {
+            new() { Product = "B", PurchaseQuantity = 2, DiscountPrice = 45 }
+        };
+
         [Fact]
         public void GetTotalPrice_NoItems_ReturnsZero()
         {
@@ -67,6 +72,23 @@ namespace Checkout.Tests
             sut.Scan("B");
             sut.Scan("C");
             sut.Scan("D");
+
+            // Act
+            var price = sut.GetTotalPrice();
+
+            // Assert
+            price.Should().Be(expected);
+        }
+
+        [Fact]
+        public void GetTotalPrice_ProductsBA_AndB_ReturnsDiscountedPrice()
+        {
+            // Arrange
+            var expected = 95;
+            var sut = new Checkout(_productList, _discounts);
+            sut.Scan("B");
+            sut.Scan("A");
+            sut.Scan("B");
 
             // Act
             var price = sut.GetTotalPrice();

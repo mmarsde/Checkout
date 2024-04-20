@@ -7,6 +7,13 @@ namespace Checkout
     {
         private readonly List<string> _scannedItems = new List<string>();
         private readonly List<SKU> _productList;
+        private readonly List<Discount> _discounts;
+        
+        public Checkout(IEnumerable<SKU> productList, IEnumerable<Discount> discounts)
+        {
+            _productList = productList.ToList();
+            _discounts = discounts.ToList();
+        }
 
         public Checkout(IEnumerable<SKU> productList)
         {
@@ -35,12 +42,11 @@ namespace Checkout
         {
             var price = 0;
 
-            foreach(var item in _scannedItems)
-            {
-                var sku = _productList
-                    .FirstOrDefault(x => x.ProductName == item);
+            var productQuantities = _productList.Select(x => (SKU: x, Quantity: _scannedItems.Count(y => x.ProductName == y)));
 
-                price += sku.UnitPrice;
+            foreach(var item in productQuantities)
+            {
+                price += (item.SKU.UnitPrice * item.Quantity); 
             }
 
             return price;
