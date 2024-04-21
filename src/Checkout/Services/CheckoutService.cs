@@ -24,14 +24,21 @@ namespace Checkout.Services
             if (_scannedItems.Count == 0)
                 return 0;
 
-            return CalculatePrice();
+            var productQuantities = _productList
+                .Select(sku => (SKU: sku,
+                    Quantity: _scannedItems.Count(scannedItem => scannedItem == sku.ProductName),
+                    Discount: _discounts.FirstOrDefault(discount => discount.Product == sku.ProductName)))
+                .Where(productGroupings => productGroupings.Quantity > 0);
+
+            return productQuantities
+                .Sum(CalculatePrice);
         }
 
         public void Scan(string item)
         {
             void ScanInternal(string item)
             {
-                if (!_productList.Any(x => x.ProductName == item))
+                if (!_productList.Any(sku => sku.ProductName == item))
                 {
                     throw new ArgumentException($"Product {item} is not a valid product.", nameof(item));
                 };
@@ -43,38 +50,35 @@ namespace Checkout.Services
             items.ForEach(ScanInternal);
         }
 
-        // TODO: Refactor - Move to a calculator class and inject an instance of ICalculator into the Checkout constructor
-        private int CalculatePrice()
+        private static int CalculatePrice((SKU SKU, int Quantity, Discount Discount) productQuantitiesAndDiscounts)
         {
-            var price = 0;
+            var productPrice = 0;
+            var productQuantity = productQuantitiesAndDiscounts.Quantity;
 
-            var productQuantities = _productList
-                .Select(x => (SKU: x, Quantity: _scannedItems.Count(y => x.ProductName == y)))
-                .Where(x => x.Quantity > 0);
-
-            foreach (var item in productQuantities)
+            if (productQuantitiesAndDiscounts.Discount is not null)
             {
-                var productPrice = 0;
+                (int discountPrice, int discountQuantity) = CalculateDiscountPrice(productQuantitiesAndDiscounts.Quantity, productQuantitiesAndDiscounts.Discount);
 
-                var productQuantity = item.Quantity;
-
-                var discount = _discounts.FirstOrDefault(x => x.Product == item.SKU.ProductName);
-                if (discount is not null)
-                {
-                    var baseRateQuantity = item.Quantity % discount.DiscountUnit;
-                    var discountQuantity = item.Quantity - baseRateQuantity;
-                    var discountedPrice = discountQuantity / discount.DiscountUnit * discount.DiscountPrice;
-
-                    productQuantity -= discountQuantity;
-                    productPrice += discountedPrice;
-                }
-
-                productPrice += item.SKU.UnitPrice * productQuantity;
-
-                price += productPrice;
+                productPrice += discountPrice;
+                productQuantity -= discountQuantity;
             }
 
-            return price;
+            productPrice += CalculateBasePrice(productQuantity, productQuantitiesAndDiscounts.SKU.UnitPrice);
+
+            return productPrice;
+        }
+
+        private static int CalculateBasePrice(int quantity, int unitPrice) => quantity * unitPrice;
+
+        private static (int DiscountPrice, int DiscountQuantity) CalculateDiscountPrice(int scannedQuantity, Discount discount)
+        {
+            var nonDiscountableQuantity = scannedQuantity % discount.DiscountUnit;
+            var discountableQuantity = scannedQuantity - nonDiscountableQuantity;
+
+            var discountGroups = discountableQuantity / discount.DiscountUnit;
+            var discountPrice = discountGroups * discount.DiscountPrice;
+
+            return (discountPrice, discountableQuantity);
         }
     }
 }
